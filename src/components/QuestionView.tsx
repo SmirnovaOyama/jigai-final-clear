@@ -1,6 +1,6 @@
 import type { Question } from '../types';
 import { RichText } from './RichText';
-import { Check, Close } from './icons';
+import { Bookmark, BookmarkFilled, Check, Close } from './icons';
 
 interface QuestionViewProps {
   question: Question;
@@ -10,12 +10,14 @@ interface QuestionViewProps {
   onSelect?: (label: string) => void;
   /** Optional context (e.g. subject name) shown next to the number in review decks. */
   context?: string;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
 }
 
 const judgeBadge: Record<string, string> = { T: '对', F: '错' };
 
 /** A single question: meta, stem, options, and (once answered) the explanation. */
-export function QuestionView({ question, selected, onSelect, context }: QuestionViewProps) {
+export function QuestionView({ question, selected, onSelect, context, isFavorite, onToggleFavorite }: QuestionViewProps) {
   const answered = selected !== undefined;
   const correct = selected === question.answer;
 
@@ -24,6 +26,16 @@ export function QuestionView({ question, selected, onSelect, context }: Question
       <div className="question-meta">
         <span className="question-number">第 {question.number} 题</span>
         {context && <span className="question-context">{context}</span>}
+        {onToggleFavorite !== undefined && (
+          <button
+            type="button"
+            className={`fav-btn${isFavorite ? ' fav-btn--active' : ''}`}
+            onClick={onToggleFavorite}
+            aria-label={isFavorite ? '取消收藏' : '收藏此题'}
+          >
+            {isFavorite ? <BookmarkFilled size={16} /> : <Bookmark size={16} />}
+          </button>
+        )}
       </div>
 
       <h2 className="question-stem">

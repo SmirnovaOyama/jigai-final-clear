@@ -223,7 +223,13 @@ sup {
    Home
    ============================================================ */
 .hero {
-  margin: 22px 0 30px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin: 0 0 22px;
+  padding: calc(env(safe-area-inset-top) + 12px) 0 14px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
 }
 
 .greeting {
@@ -388,6 +394,227 @@ sup {
   font-size: 13px;
   color: var(--text-faint);
   text-align: center;
+}
+
+/* Extra bottom padding so content clears the fixed bottom nav.
+   The nav is ~61px tall plus the iOS home-indicator safe-area inset, so we
+   reserve that inset here too. The `.container` qualifier raises specificity
+   above the responsive `.container { padding: … }` rule, which would
+   otherwise override this padding-bottom on mobile and hide the last rows. */
+.container.has-bottom-nav {
+  padding-bottom: calc(82px + env(safe-area-inset-bottom));
+}
+
+/* ============================================================
+   Bottom navigation
+   ============================================================ */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 0;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.15s;
+}
+
+.nav-tab--active {
+  color: var(--accent);
+}
+
+.nav-tab-label {
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+/* ============================================================
+   Settings page rows
+   ============================================================ */
+.list-row.settings-stepper-row {
+  cursor: default;
+  gap: 12px;
+}
+
+.list-row.settings-stepper-row:hover {
+  background: transparent;
+}
+
+.settings-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.settings-stepper-unit {
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.list-row--danger:hover:not(:disabled) .row-title--danger {
+  color: var(--wrong);
+}
+
+/* Favorite (bookmark) button inside question-meta */
+.fav-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.fav-btn:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.fav-btn--active {
+  color: var(--accent);
+}
+
+/* Flashcard entry row in home */
+.list-row.fc-entry {
+  cursor: default;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.list-row.fc-entry:hover {
+  background: transparent;
+}
+
+.fc-entry-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.fc-entry-icon {
+  color: var(--accent);
+}
+
+.fc-entry-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.fc-start-btn {
+  height: 34px;
+  padding: 0 16px;
+  font-size: 13.5px;
+}
+
+/* Flashcard study card */
+.fc-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px 24px;
+  box-shadow: var(--shadow);
+}
+
+.fc-card-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 18px;
+}
+
+.fc-subject-badge {
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.fc-explanation {
+  font-size: 18px;
+  line-height: 1.75;
+  color: var(--text);
+  font-weight: 500;
+  margin: 0 0 28px;
+}
+
+.fc-flip-btn {
+  width: 100%;
+  height: 48px;
+  font-size: 15px;
+}
+
+/* Next button after answering */
+.fc-next {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fc-next .btn {
+  min-width: 160px;
+}
+
+/* ============================================================
+   Toast
+   ============================================================ */
+.toast {
+  position: fixed;
+  top: calc(var(--header-h) + 14px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-10px);
+  background: var(--text);
+  color: var(--bg);
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-size: 14.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.toast--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 /* ============================================================

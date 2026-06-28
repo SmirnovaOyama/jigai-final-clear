@@ -28,8 +28,8 @@ function findMarker(text: string, letter: string, fromIdx: number): number {
   return -1;
 }
 
-/** Split a block of option text into individual A–E options, in order. */
-function splitOptions(text: string): Option[] {
+/** Scan a block of option text for inline markers ("A. 长骨 B短骨 …"). */
+function splitOptionsInline(text: string): Option[] {
   const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
   const markers: { label: string; idx: number; textStart: number }[] = [];
   let from = 0;
@@ -50,6 +50,45 @@ function splitOptions(text: string): Option[] {
     options.push({ label: markers[i].label, text: t });
   }
   return options;
+}
+
+// A line whose marker is followed by a real separator ("A. …", "B. …").
+const LINE_MARKER = /^([A-G])[.．、)）:：]\s*(.*)$/;
+
+/**
+ * Split options that each sit on their own line (histology style), e.g.
+ *   A. B细胞分泌胰岛素不足
+ *   B. A细胞分泌胰岛素不足
+ * Here the option *text* may start with a letter (cell types A/B/D 细胞), so an
+ * inline scan would wrongly split on it. We take the whole rest of the line as
+ * the option text. Returns null unless the lines form a clean, sequential
+ * one-per-line list (A, B, C, …) of at least three options — otherwise the
+ * caller falls back to the inline scan (anatomy / physiology formats).
+ */
+function splitOptionsByLine(lines: string[]): Option[] | null {
+  const options: Option[] = [];
+  for (const line of lines) {
+    const m = line.match(LINE_MARKER);
+    if (m) {
+      options.push({ label: m[1], text: m[2].trim() });
+    } else if (options.length) {
+      const last = options[options.length - 1];
+      last.text = `${last.text} ${line}`.trim(); // wrapped continuation line
+    } else {
+      return null; // first line isn't a marker — not this format
+    }
+  }
+  if (options.length < 3) return null;
+  for (let i = 0; i < options.length; i++) {
+    if (options[i].label !== String.fromCharCode(65 + i)) return null;
+  }
+  return options;
+}
+
+/** Split a block of option text into individual options, in order. */
+function splitOptions(text: string): Option[] {
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+  return splitOptionsByLine(lines) ?? splitOptionsInline(text);
 }
 
 // A line begins the options block if it starts with a label followed by a

@@ -1,21 +1,27 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { subjects, subjectMap } from './data/questions';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import type { DeckItem, DeckSession, HistoryEntry, Question, Session } from './types';
+import type { DeckItem, DeckSession, FlashcardSession, HistoryEntry, Question, Session } from './types';
 import { Home } from './components/Home';
 import { Quiz } from './components/Quiz';
 import { Results } from './components/Results';
+import { Toast } from './components/Toast';
+import { FlashcardView } from './components/Flashcard';
+import { BottomNav } from './components/BottomNav';
+import { Settings } from './components/Settings';
 
-type View = 'home' | 'quiz' | 'results';
+type View = 'home' | 'settings' | 'quiz' | 'results' | 'flashcard';
 type Theme = 'light' | 'dark';
 type ActiveKind = 'subject' | 'deck';
 export type RestartMode = 'all' | 'shuffle' | 'wrong';
-export type DeckKind = 'today' | 'all' | 'wrong';
+export type DeckKind = 'today' | 'all' | 'wrong' | 'favorites';
 
 type SessionMap = Record<string, Session>;
 type History = Record<string, HistoryEntry>;
+type Favorites = Record<string, boolean>;
 interface Settings {
   dailyGoal: number;
+  flashcardCount: number;
 }
 type Activity = Record<string, number>;
 
@@ -23,6 +29,7 @@ const DECK_TITLES: Record<DeckKind, string> = {
   today: '今日回顾',
   all: '重做做过的题',
   wrong: '重做错题',
+  favorites: '收藏题目',
 };
 
 function todayKey(): string {
@@ -55,7 +62,7 @@ function parseQid(qid: string): { subjectId: string; qIndex: number } | null {
 }
 
 /** Build a list of deck items from the answer history, filtered by kind. */
-function deckItemsFromHistory(history: History, kind: DeckKind): DeckItem[] {
+function deckItemsFromHistory(history: History, kind: Exclude<DeckKind, 'favorites'>): DeckItem[] {
   const today = todayKey();
   const items: DeckItem[] = [];
   for (const [qid, h] of Object.entries(history)) {
@@ -78,10 +85,13 @@ export default function App() {
   const [sessions, setSessions] = useLocalStorage<SessionMap>('quiz.sessions.v2', {});
   const [settings, setSettings] = useLocalStorage<Settings>('quiz.settings.v1', {
     dailyGoal: 20,
+    flashcardCount: 20,
   });
   const [activity, setActivity] = useLocalStorage<Activity>('quiz.activity.v1', {});
   const [history, setHistory] = useLocalStorage<History>('quiz.history.v1', {});
   const [deck, setDeck] = useLocalStorage<DeckSession | null>('quiz.deck.v1', null);
+  const [favorites, setFavorites] = useLocalStorage<Favorites>('quiz.favorites.v1', {});
+  const [flashcard, setFlashcard] = useLocalStorage<FlashcardSession | null>('quiz.flashcard.v1', null);
 
   const [view, setView] = useState<View>('home');
   const [activeKind, setActiveKind] = useState<ActiveKind>('subject');
@@ -124,13 +134,22 @@ export default function App() {
   // ---- Review decks ----------------------------------------------------
   const startDeck = useCallback(
     (kind: DeckKind) => {
-      const items = shuffle(deckItemsFromHistory(history, kind));
+      let items: DeckItem[];
+      if (kind === 'favorites') {
+        items = Object.entries(favorites)
+          .filter(([, fav]) => fav)
+          .map(([qid]) => parseQid(qid))
+          .filter((x): x is DeckItem => x !== null);
+      } else {
+        items = deckItemsFromHistory(history, kind);
+      }
+      items = shuffle(items);
       if (!items.length) return;
       setDeck({ title: DECK_TITLES[kind], items, position: 0, answers: {} });
       setActiveKind('deck');
       setView('quiz');
     },
-    [history, setDeck],
+    [favorites, history, setDeck],
   );
 
   const goHome = useCallback(() => {
@@ -232,6 +251,114 @@ export default function App() {
     [setSettings],
   );
 
+  const clearTodayProgress = useCallback(() => {
+    if (!window.confirm('确认清空今日刷题进度？此操作无法撤销。')) return;
+    const today = todayKey();
+    const todayQids = new Set<string>(
+      Object.entries(history)
+        .filter(([, h]) => h.d === today)
+        .map(([qid]) => qid),
+    );
+    setHistory((prev) => {
+      const next = { ...prev };
+      for (const qid of todayQids) delete next[qid];
+      return next;
+    });
+    setActivity((prev) => {
+      const next = { ...prev };
+      delete next[today];
+      return next;
+    });
+    setSessions((prev) => {
+      const next: SessionMap = {};
+      let changed = false;
+      for (const [subjectId, session] of Object.entries(prev)) {
+        const newAnswers = { ...session.answers };
+        let sessionChanged = false;
+        for (const qIdxStr of Object.keys(newAnswers)) {
+          if (todayQids.has(`${subjectId}-${qIdxStr}`)) {
+            delete newAnswers[Number(qIdxStr)];
+            sessionChanged = true;
+          }
+        }
+        next[subjectId] = sessionChanged ? { ...session, answers: newAnswers } : session;
+        if (sessionChanged) changed = true;
+      }
+      return changed ? next : prev;
+    });
+    setDeck(null);
+  }, [history, setHistory, setActivity, setSessions, setDeck]);
+
+  const clearAllProgress = useCallback(() => {
+    if (!window.confirm('确认清空所有刷题进度？此操作无法撤销。')) return;
+    setHistory({});
+    setActivity({});
+    setSessions({});
+    setDeck(null);
+  }, [setHistory, setActivity, setSessions, setDeck]);
+
+  // ---- Favorites -------------------------------------------------------
+  const toggleFavorite = useCallback(
+    (qid: string) => setFavorites((prev) => ({ ...prev, [qid]: !prev[qid] })),
+    [setFavorites],
+  );
+
+  // ---- Flashcard (知识点速览) -------------------------------------------
+  const totalFlashcardEligible = useMemo(() => {
+    let n = 0;
+    for (const s of subjects) {
+      for (const q of s.questions) if (q.explanation) n++;
+    }
+    return n;
+  }, []);
+
+  const setFlashcardCount = useCallback(
+    (count: number) => setSettings((s) => ({ ...s, flashcardCount: count })),
+    [setSettings],
+  );
+
+  const startFlashcard = useCallback(
+    (count: number) => {
+      const pool: DeckItem[] = [];
+      for (const s of subjects) {
+        for (let i = 0; i < s.questions.length; i++) {
+          if (s.questions[i].explanation) pool.push({ subjectId: s.id, qIndex: i });
+        }
+      }
+      const items = shuffle(pool).slice(0, count);
+      if (!items.length) return;
+      setFlashcard({ items, position: 0, phase: 'study', answers: {} });
+      setView('flashcard');
+    },
+    [setFlashcard],
+  );
+
+  const flipFlashcard = useCallback(() => {
+    setFlashcard((prev) => (prev ? { ...prev, phase: 'quiz' } : prev));
+  }, [setFlashcard]);
+
+  const answerFlashcard = useCallback(
+    (position: number, label: string, q: Question) => {
+      setFlashcard((prev) => {
+        if (!prev || prev.answers[position] !== undefined) return prev;
+        return { ...prev, answers: { ...prev.answers, [position]: label } };
+      });
+      recordAnswer(q, label);
+    },
+    [setFlashcard, recordAnswer],
+  );
+
+  const nextFlashcard = useCallback(() => {
+    setFlashcard((prev) =>
+      prev ? { ...prev, position: prev.position + 1, phase: 'study' } : prev,
+    );
+  }, [setFlashcard]);
+
+  const finishFlashcard = useCallback(() => {
+    setFlashcard(null);
+    setView('home');
+  }, [setFlashcard]);
+
   // ---- Derived stats from history --------------------------------------
   const stats = useMemo(() => {
     const today = todayKey();
@@ -269,6 +396,33 @@ export default function App() {
     return n;
   }, [activity]);
 
+  // ---- Daily goal toast ------------------------------------------------
+  const [goalToast, setGoalToast] = useState(false);
+  const prevTodayDoneRef = useRef(stats.todayDone);
+  useEffect(() => {
+    const prev = prevTodayDoneRef.current;
+    prevTodayDoneRef.current = stats.todayDone;
+    if (prev < settings.dailyGoal && stats.todayDone >= settings.dailyGoal) {
+      setGoalToast(true);
+      const timer = setTimeout(() => setGoalToast(false), 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [stats.todayDone, settings.dailyGoal]);
+
+  // ---- Resolve flashcard session into renderable items ------------------
+  const activeFlashcard = useMemo(() => {
+    if (!flashcard) return null;
+    const resolved = flashcard.items
+      .map((it) => {
+        const subject = subjectMap[it.subjectId];
+        const question = subject?.questions[it.qIndex];
+        if (!question) return null;
+        return { question, subjectName: subject.name };
+      })
+      .filter((x): x is { question: Question; subjectName: string } => x !== null);
+    return { resolved, position: flashcard.position, phase: flashcard.phase, answers: flashcard.answers };
+  }, [flashcard]);
+
   // ---- Resolve the active quiz/results into position-indexed arrays -----
   const active = useMemo(() => {
     if (activeKind === 'subject') {
@@ -297,6 +451,8 @@ export default function App() {
 
   return (
     <div className="app">
+      <Toast visible={goalToast}>🎉 今日目标完成！</Toast>
+
       {view === 'home' && (
         <Home
           subjects={subjects}
@@ -306,11 +462,34 @@ export default function App() {
           wrongCount={stats.wrong}
           dailyGoal={settings.dailyGoal}
           streak={streak}
-          onSetGoal={setDailyGoal}
-          theme={theme}
-          onToggleTheme={toggleTheme}
           onOpen={openSubject}
           onStartDeck={startDeck}
+          favorites={favorites}
+          flashcardCount={settings.flashcardCount}
+          onStartFlashcard={startFlashcard}
+        />
+      )}
+
+      {view === 'settings' && (
+        <Settings
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          dailyGoal={settings.dailyGoal}
+          onSetGoal={setDailyGoal}
+          flashcardCount={settings.flashcardCount}
+          totalFlashcardEligible={totalFlashcardEligible}
+          onSetFlashcardCount={setFlashcardCount}
+          todayDone={stats.todayDone}
+          doneCount={stats.done}
+          onClearToday={clearTodayProgress}
+          onClearAll={clearAllProgress}
+        />
+      )}
+
+      {(view === 'home' || view === 'settings') && (
+        <BottomNav
+          active={view}
+          onChange={(tab) => setView(tab)}
         />
       )}
 
@@ -327,6 +506,26 @@ export default function App() {
           onGoTo={handleGoTo}
           onExit={goHome}
           onShowResults={() => setView('results')}
+          favorites={favorites}
+          onToggleFavorite={toggleFavorite}
+        />
+      )}
+
+      {view === 'flashcard' && activeFlashcard && (
+        <FlashcardView
+          items={activeFlashcard.resolved}
+          position={activeFlashcard.position}
+          phase={activeFlashcard.phase}
+          answers={activeFlashcard.answers}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onFlip={flipFlashcard}
+          onAnswer={answerFlashcard}
+          onNext={nextFlashcard}
+          onFinish={finishFlashcard}
+          onExit={finishFlashcard}
+          favorites={favorites}
+          onToggleFavorite={toggleFavorite}
         />
       )}
 

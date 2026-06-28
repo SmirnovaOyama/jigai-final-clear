@@ -63,3 +63,13 @@ export interface HistoryEntry {
   pick: string;
 }
 
+/** A "知识点速览" flashcard session: study the explanation, then answer the question. */
+export interface FlashcardSession {
+  items: DeckItem[];
+  position: number;
+  /** 'study' = explanation card; 'quiz' = question answering. */
+  phase: 'study' | 'quiz';
+  /** Map of position-in-session -> selected option label. */
+  answers: Record<number, string>;
+}
+

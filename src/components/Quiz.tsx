@@ -20,6 +20,8 @@ interface QuizProps {
   onGoTo: (position: number) => void;
   onExit: () => void;
   onShowResults: () => void;
+  favorites?: Record<string, boolean>;
+  onToggleFavorite?: (qid: string) => void;
 }
 
 export function Quiz({
@@ -34,6 +36,8 @@ export function Quiz({
   onGoTo,
   onExit,
   onShowResults,
+  favorites,
+  onToggleFavorite,
 }: QuizProps) {
   const total = questions.length;
   const question = questions[position];
@@ -150,6 +154,8 @@ export function Quiz({
           selected={selected}
           context={contextLabels?.[position]}
           onSelect={(label) => onSelect(position, label)}
+          isFavorite={favorites?.[question.id] ?? false}
+          onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(question.id) : undefined}
         />
       </main>
 
