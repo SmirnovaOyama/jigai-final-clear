@@ -127,6 +127,13 @@ export const Shuffle = ({ size = 20, className }: IconProps) => (
   </svg>
 );
 
+export const SearchIcon = ({ size = 20, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m20 20-4.3-4.3" />
+  </svg>
+);
+
 export const Trophy = ({ size = 20, className }: IconProps) => (
   <svg {...base(size)} className={className}>
     <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />

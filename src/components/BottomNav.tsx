@@ -1,12 +1,13 @@
-import { House, SettingsIcon } from './icons';
+import { House, SearchIcon, SettingsIcon } from './icons';
 
 interface BottomNavProps {
-  active: 'home' | 'settings';
-  onChange: (tab: 'home' | 'settings') => void;
+  active: 'home' | 'search' | 'settings';
+  onChange: (tab: 'home' | 'search' | 'settings') => void;
 }
 
 const TABS = [
   { id: 'home', label: '主页', Icon: House },
+  { id: 'search', label: '搜索', Icon: SearchIcon },
   { id: 'settings', label: '设置', Icon: SettingsIcon },
 ] as const;
 

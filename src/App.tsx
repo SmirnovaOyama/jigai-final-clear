@@ -9,8 +9,10 @@ import { Toast } from './components/Toast';
 import { FlashcardView } from './components/Flashcard';
 import { BottomNav } from './components/BottomNav';
 import { Settings } from './components/Settings';
+import { Search } from './components/Search';
 
-type View = 'home' | 'settings' | 'quiz' | 'results' | 'flashcard';
+type Tab = 'home' | 'search' | 'settings';
+type View = Tab | 'quiz' | 'results' | 'flashcard';
 type Theme = 'light' | 'dark';
 type ActiveKind = 'subject' | 'deck';
 export type RestartMode = 'all' | 'shuffle' | 'wrong';
@@ -98,6 +100,7 @@ export default function App() {
   const [flashcard, setFlashcard] = useLocalStorage<FlashcardSession | null>('quiz.flashcard.v1', null);
 
   const [view, setView] = useState<View>('home');
+  const tabRef = useRef<Tab>('home');
   const [activeKind, setActiveKind] = useState<ActiveKind>('subject');
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -156,8 +159,13 @@ export default function App() {
     [favorites, history, setDeck],
   );
 
+  const setTab = useCallback((tab: Tab) => {
+    tabRef.current = tab;
+    setView(tab);
+  }, []);
+
   const goHome = useCallback(() => {
-    setView('home');
+    setView(tabRef.current);
     setActiveId(null);
   }, []);
 
@@ -402,9 +410,18 @@ export default function App() {
     );
   }, [setFlashcard]);
 
+  const openSearchQuestion = useCallback(
+    (item: DeckItem) => {
+      setDeck({ title: '题目搜索', items: [item], position: 0, answers: {} });
+      setActiveKind('deck');
+      setView('quiz');
+    },
+    [setDeck],
+  );
+
   const finishFlashcard = useCallback(() => {
     setFlashcard(null);
-    setView('home');
+    setView(tabRef.current);
   }, [setFlashcard]);
 
   // ---- Derived stats from history --------------------------------------
@@ -521,6 +538,10 @@ export default function App() {
         />
       )}
 
+      {view === 'search' && (
+        <Search favorites={favorites} onOpenQuestion={openSearchQuestion} />
+      )}
+
       {view === 'settings' && (
         <Settings
           theme={theme}
@@ -542,10 +563,10 @@ export default function App() {
         />
       )}
 
-      {(view === 'home' || view === 'settings') && (
+      {(view === 'home' || view === 'settings' || view === 'search') && (
         <BottomNav
           active={view}
-          onChange={(tab) => setView(tab)}
+          onChange={setTab}
         />
       )}
 
