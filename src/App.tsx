@@ -22,6 +22,7 @@ type Favorites = Record<string, boolean>;
 interface Settings {
   dailyGoal: number;
   flashcardCount: number;
+  randomCount: number;
 }
 type Activity = Record<string, number>;
 
@@ -86,6 +87,7 @@ export default function App() {
   const [settings, setSettings] = useLocalStorage<Settings>('quiz.settings.v1', {
     dailyGoal: 20,
     flashcardCount: 20,
+    randomCount: 30,
   });
   const [activity, setActivity] = useLocalStorage<Activity>('quiz.activity.v1', {});
   const [history, setHistory] = useLocalStorage<History>('quiz.history.v1', {});
@@ -307,7 +309,7 @@ export default function App() {
   const totalFlashcardEligible = useMemo(() => {
     let n = 0;
     for (const s of subjects) {
-      for (const q of s.questions) if (q.explanation) n++;
+      for (const q of s.questions) if (q.knowledgePoint) n++;
     }
     return n;
   }, []);
@@ -326,12 +328,41 @@ export default function App() {
     Math.max(20, totalFlashcardEligible),
   );
 
+  const totalQuestions = useMemo(() => subjects.reduce((n, s) => n + s.questions.length, 0), []);
+  const randomCount = Math.min(
+    Math.max(10, Number.isFinite(settings.randomCount) ? settings.randomCount : 30),
+    totalQuestions,
+  );
+
+  const setRandomCount = useCallback(
+    (count: number) =>
+      setSettings((s) => ({ ...s, randomCount: Number.isFinite(count) ? count : 30 })),
+    [setSettings],
+  );
+
+  const startRandomDeck = useCallback(
+    (count: number, title: string) => {
+      const pool: DeckItem[] = [];
+      for (const s of subjects) {
+        for (let i = 0; i < s.questions.length; i++) {
+          pool.push({ subjectId: s.id, qIndex: i });
+        }
+      }
+      const items = shuffle(pool).slice(0, Math.min(count, pool.length));
+      if (!items.length) return;
+      setDeck({ title, items, position: 0, answers: {} });
+      setActiveKind('deck');
+      setView('quiz');
+    },
+    [setDeck],
+  );
+
   const startFlashcard = useCallback(
     (count: number) => {
       const pool: DeckItem[] = [];
       for (const s of subjects) {
         for (let i = 0; i < s.questions.length; i++) {
-          if (s.questions[i].explanation) pool.push({ subjectId: s.id, qIndex: i });
+          if (s.questions[i].knowledgePoint) pool.push({ subjectId: s.id, qIndex: i });
         }
       }
       const items = shuffle(pool).slice(0, count);
@@ -476,6 +507,9 @@ export default function App() {
           favorites={favorites}
           flashcardCount={flashcardCount}
           onStartFlashcard={startFlashcard}
+          randomCount={randomCount}
+          onStartRandom={(count) => startRandomDeck(count, `随机抽题 · ${count} 题`)}
+          onStartExam={() => startRandomDeck(100, '期末考试模拟')}
         />
       )}
 
@@ -488,6 +522,9 @@ export default function App() {
           flashcardCount={flashcardCount}
           totalFlashcardEligible={totalFlashcardEligible}
           onSetFlashcardCount={setFlashcardCount}
+          randomCount={randomCount}
+          totalQuestions={totalQuestions}
+          onSetRandomCount={setRandomCount}
           todayDone={stats.todayDone}
           doneCount={stats.done}
           onClearToday={clearTodayProgress}

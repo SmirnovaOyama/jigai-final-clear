@@ -82,7 +82,8 @@ export function FlashcardView({
               <Spark size={14} />
               知识点
             </div>
-            <p className="fc-explanation">{current.question.explanation}</p>
+            <p className="fc-stem-hint">考查：{current.question.stem}</p>
+            <p className="fc-knowledge">{current.question.knowledgePoint}</p>
             <button type="button" className="btn btn--primary fc-flip-btn" onClick={onFlip}>
               开始答题
               <ChevronRight size={18} />

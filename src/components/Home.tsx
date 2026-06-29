@@ -1,6 +1,6 @@
 import type { DeckKind } from '../App';
 import type { Subject } from '../types';
-import { ChevronRight, Spark } from './icons';
+import { ChevronRight, Shuffle, Spark, Trophy } from './icons';
 
 interface HomeProps {
   subjects: Subject[];
@@ -15,6 +15,9 @@ interface HomeProps {
   favorites: Record<string, boolean>;
   flashcardCount: number;
   onStartFlashcard: (count: number) => void;
+  randomCount: number;
+  onStartRandom: (count: number) => void;
+  onStartExam: () => void;
 }
 
 function greeting(): string {
@@ -39,6 +42,9 @@ export function Home({
   favorites,
   flashcardCount,
   onStartFlashcard,
+  randomCount,
+  onStartRandom,
+  onStartExam,
 }: HomeProps) {
   const goalPct = dailyGoal > 0 ? Math.min(100, Math.round((todayDone / dailyGoal) * 100)) : 0;
   const goalDone = todayDone >= dailyGoal;
@@ -110,6 +116,44 @@ export function Home({
                 知识点速览
               </span>
               <span className="row-sub">先看知识点，再做对应题目 · {flashcardCount} 题</span>
+            </span>
+            <span className="row-go" aria-hidden="true">
+              <ChevronRight size={18} />
+            </span>
+          </button>
+        </div>
+      </section>
+
+      <section className="home-section">
+        <h2 className="group-label">模拟练习</h2>
+        <div className="list">
+          <button
+            type="button"
+            className="list-row"
+            onClick={() => onStartRandom(randomCount)}
+          >
+            <span className="row-main">
+              <span className="row-title fc-entry-title">
+                <Shuffle size={15} className="fc-entry-icon" />
+                随机抽题
+              </span>
+              <span className="row-sub">三科随机混合练习 · {randomCount} 题</span>
+            </span>
+            <span className="row-go" aria-hidden="true">
+              <ChevronRight size={18} />
+            </span>
+          </button>
+          <button
+            type="button"
+            className="list-row"
+            onClick={onStartExam}
+          >
+            <span className="row-main">
+              <span className="row-title fc-entry-title">
+                <Trophy size={15} className="fc-entry-icon" />
+                期末考试模拟
+              </span>
+              <span className="row-sub">三科随机混合抽取 · 100 题</span>
             </span>
             <span className="row-go" aria-hidden="true">
               <ChevronRight size={18} />

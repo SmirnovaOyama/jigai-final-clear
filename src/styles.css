@@ -565,6 +565,22 @@ sup {
   text-transform: none;
 }
 
+.fc-stem-hint {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+
+.fc-knowledge {
+  font-size: 18px;
+  line-height: 1.75;
+  color: var(--text);
+  font-weight: 500;
+  margin: 0 0 28px;
+  white-space: pre-wrap;
+}
+
 .fc-explanation {
   font-size: 18px;
   line-height: 1.75;

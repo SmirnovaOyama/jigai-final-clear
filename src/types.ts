@@ -18,6 +18,8 @@ export interface Question {
   answer: string;
   /** The correct option's text (as written in the answer line). */
   answerText: string;
+  /** Standalone concept for flashcard study — separate from post-answer 解析. */
+  knowledgePoint: string;
   explanation: string;
 }
 
@@ -63,11 +65,11 @@ export interface HistoryEntry {
   pick: string;
 }
 
-/** A "知识点速览" flashcard session: study the explanation, then answer the question. */
+/** A "知识点速览" flashcard session: study the knowledge point, then answer the question. */
 export interface FlashcardSession {
   items: DeckItem[];
   position: number;
-  /** 'study' = explanation card; 'quiz' = question answering. */
+  /** 'study' = knowledge-point card; 'quiz' = question answering. */
   phase: 'study' | 'quiz';
   /** Map of position-in-session -> selected option label. */
   answers: Record<number, string>;

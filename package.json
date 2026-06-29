@@ -7,7 +7,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "extract-questions": "node scripts/extract-questions.mjs",
+    "patch-explanations": "node scripts/patch-explanations.mjs",
+    "patch-knowledge-points": "node scripts/patch-knowledge-points.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

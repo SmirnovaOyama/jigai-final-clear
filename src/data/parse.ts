@@ -129,7 +129,7 @@ export function parseQuestions(content: string, subjectId: string): Question[] {
     const optionsText = qLines.slice(optStart).join('\n');
     let options = splitOptions(optionsText);
 
-    // Answer block: "答案：C. ..." (choice) or "答案：正确/错误" (judge), plus "解析：...".
+    // Answer block: 答案 / 知识点 / 解析.
     const aLines = match[2]
       .split('\n')
       .map((l) => l.trim())
@@ -137,12 +137,14 @@ export function parseQuestions(content: string, subjectId: string): Question[] {
 
     let answer = '';
     let answerText = '';
+    let knowledgePoint = '';
     let explanation = '';
     let type: QuestionType = 'choice';
 
     for (const line of aLines) {
       const choiceMatch = line.match(/^答案[：:]\s*([A-G])[.．、)]?\s*(.*)$/);
       const judgeMatch = line.match(/^答案[：:]\s*(正确|错误|对|错|√|×|✓|✗)\s*$/);
+      const kpMatch = line.match(/^知识点[：:]\s*(.*)$/);
       const explMatch = line.match(/^解析[：:]\s*(.*)$/);
 
       if (choiceMatch) {
@@ -152,11 +154,14 @@ export function parseQuestions(content: string, subjectId: string): Question[] {
         type = 'judge';
         const v = judgeMatch[1];
         answer = v === '正确' || v === '对' || v === '√' || v === '✓' ? 'T' : 'F';
+      } else if (kpMatch) {
+        knowledgePoint = kpMatch[1];
       } else if (explMatch) {
         explanation = explMatch[1];
       } else if (explanation) {
-        // Continuation of a multi-line explanation.
         explanation += line;
+      } else if (knowledgePoint) {
+        knowledgePoint += line;
       }
     }
 
@@ -179,6 +184,7 @@ export function parseQuestions(content: string, subjectId: string): Question[] {
       options,
       answer,
       answerText,
+      knowledgePoint,
       explanation,
     });
     index++;
