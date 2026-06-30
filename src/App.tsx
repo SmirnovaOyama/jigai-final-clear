@@ -24,6 +24,7 @@ type Favorites = Record<string, boolean>;
 interface Settings {
   dailyGoal: number;
   flashcardCount: number;
+  memorizeCount: number;
   randomCount: number;
   shuffleOptions: boolean;
 }
@@ -90,6 +91,7 @@ export default function App() {
   const [settings, setSettings] = useLocalStorage<Settings>('quiz.settings.v1', {
     dailyGoal: 20,
     flashcardCount: 20,
+    memorizeCount: 10,
     randomCount: 30,
     shuffleOptions: false,
   });
@@ -330,6 +332,12 @@ export default function App() {
     [setSettings],
   );
 
+  const setMemorizeCount = useCallback(
+    (count: number) =>
+      setSettings((s) => ({ ...s, memorizeCount: Number.isFinite(count) ? count : 10 })),
+    [setSettings],
+  );
+
   // Older saved settings may lack these fields; fall back to safe numbers so
   // the steppers never start from undefined (which would produce NaN).
   const dailyGoal = Number.isFinite(settings.dailyGoal) ? settings.dailyGoal : 20;
@@ -339,6 +347,10 @@ export default function App() {
   );
 
   const totalQuestions = useMemo(() => subjects.reduce((n, s) => n + s.questions.length, 0), []);
+  const memorizeCount = Math.min(
+    Math.max(5, Number.isFinite(settings.memorizeCount) ? settings.memorizeCount : 10),
+    totalQuestions,
+  );
   const randomCount = Math.min(
     Math.max(10, Number.isFinite(settings.randomCount) ? settings.randomCount : 30),
     totalQuestions,
@@ -383,7 +395,23 @@ export default function App() {
       }
       const items = shuffle(pool).slice(0, count);
       if (!items.length) return;
-      setFlashcard({ items, position: 0, phase: 'study', answers: {} });
+      setFlashcard({ items, position: 0, phase: 'study', mode: 'knowledge', answers: {} });
+      setView('flashcard');
+    },
+    [setFlashcard],
+  );
+
+  const startMemorize = useCallback(
+    (count: number) => {
+      const pool: DeckItem[] = [];
+      for (const s of subjects) {
+        for (let i = 0; i < s.questions.length; i++) {
+          pool.push({ subjectId: s.id, qIndex: i });
+        }
+      }
+      const items = shuffle(pool).slice(0, Math.min(count, pool.length));
+      if (!items.length) return;
+      setFlashcard({ items, position: 0, phase: 'study', mode: 'answer', answers: {} });
       setView('flashcard');
     },
     [setFlashcard],
@@ -391,6 +419,29 @@ export default function App() {
 
   const flipFlashcard = useCallback(() => {
     setFlashcard((prev) => (prev ? { ...prev, phase: 'quiz' } : prev));
+  }, [setFlashcard]);
+
+  const advanceMemorizeStudy = useCallback(() => {
+    setFlashcard((prev) =>
+      prev && prev.mode === 'answer' && prev.phase === 'study'
+        ? { ...prev, position: prev.position + 1 }
+        : prev,
+    );
+  }, [setFlashcard]);
+
+  const prevFlashcard = useCallback(() => {
+    setFlashcard((prev) => {
+      if (!prev || prev.position <= 0) return prev;
+      return { ...prev, position: prev.position - 1 };
+    });
+  }, [setFlashcard]);
+
+  const startMemorizeQuiz = useCallback(() => {
+    setFlashcard((prev) =>
+      prev && prev.mode === 'answer'
+        ? { ...prev, position: 0, phase: 'quiz', answers: {} }
+        : prev,
+    );
   }, [setFlashcard]);
 
   const answerFlashcard = useCallback(
@@ -405,9 +456,13 @@ export default function App() {
   );
 
   const nextFlashcard = useCallback(() => {
-    setFlashcard((prev) =>
-      prev ? { ...prev, position: prev.position + 1, phase: 'study' } : prev,
-    );
+    setFlashcard((prev) => {
+      if (!prev) return prev;
+      if (prev.mode === 'answer' && prev.phase === 'quiz') {
+        return { ...prev, position: prev.position + 1 };
+      }
+      return { ...prev, position: prev.position + 1, phase: 'study' };
+    });
   }, [setFlashcard]);
 
   const openSearchQuestion = useCallback(
@@ -485,7 +540,13 @@ export default function App() {
         return { question, subjectName: subject.name };
       })
       .filter((x): x is { question: Question; subjectName: string } => x !== null);
-    return { resolved, position: flashcard.position, phase: flashcard.phase, answers: flashcard.answers };
+    return {
+      resolved,
+      position: flashcard.position,
+      phase: flashcard.phase,
+      mode: flashcard.mode ?? 'knowledge',
+      answers: flashcard.answers,
+    };
   }, [flashcard]);
 
   // ---- Resolve the active quiz/results into position-indexed arrays -----
@@ -532,6 +593,8 @@ export default function App() {
           favorites={favorites}
           flashcardCount={flashcardCount}
           onStartFlashcard={startFlashcard}
+          memorizeCount={memorizeCount}
+          onStartMemorize={startMemorize}
           randomCount={randomCount}
           onStartRandom={(count) => startRandomDeck(count, `随机抽题 · ${count} 题`)}
           onStartExam={() => startRandomDeck(100, '期末考试模拟')}
@@ -551,6 +614,8 @@ export default function App() {
           flashcardCount={flashcardCount}
           totalFlashcardEligible={totalFlashcardEligible}
           onSetFlashcardCount={setFlashcardCount}
+          memorizeCount={memorizeCount}
+          onSetMemorizeCount={setMemorizeCount}
           randomCount={randomCount}
           totalQuestions={totalQuestions}
           onSetRandomCount={setRandomCount}
@@ -594,10 +659,14 @@ export default function App() {
           items={activeFlashcard.resolved}
           position={activeFlashcard.position}
           phase={activeFlashcard.phase}
+          mode={activeFlashcard.mode}
           answers={activeFlashcard.answers}
           theme={theme}
           onToggleTheme={toggleTheme}
           onFlip={flipFlashcard}
+          onAdvanceStudy={advanceMemorizeStudy}
+          onPrev={prevFlashcard}
+          onStartQuiz={startMemorizeQuiz}
           onAnswer={answerFlashcard}
           onNext={nextFlashcard}
           onFinish={finishFlashcard}

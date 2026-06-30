@@ -65,12 +65,14 @@ export interface HistoryEntry {
   pick: string;
 }
 
-/** A "知识点速览" flashcard session: study the knowledge point, then answer the question. */
+/** A flashcard session: study content first, then answer the question. */
 export interface FlashcardSession {
   items: DeckItem[];
   position: number;
-  /** 'study' = knowledge-point card; 'quiz' = question answering. */
+  /** 'study' = review card; 'quiz' = question answering. */
   phase: 'study' | 'quiz';
+  /** 'knowledge' = per-card 知识点→答题; 'answer' = batch 背答案→检验. */
+  mode?: 'knowledge' | 'answer';
   /** Map of position-in-session -> selected option label. */
   answers: Record<number, string>;
 }

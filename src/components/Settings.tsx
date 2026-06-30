@@ -8,6 +8,8 @@ interface SettingsProps {
   flashcardCount: number;
   totalFlashcardEligible: number;
   onSetFlashcardCount: (count: number) => void;
+  memorizeCount: number;
+  onSetMemorizeCount: (count: number) => void;
   randomCount: number;
   totalQuestions: number;
   onSetRandomCount: (count: number) => void;
@@ -27,6 +29,8 @@ export function Settings({
   flashcardCount,
   totalFlashcardEligible,
   onSetFlashcardCount,
+  memorizeCount,
+  onSetMemorizeCount,
   randomCount,
   totalQuestions,
   onSetRandomCount,
@@ -41,6 +45,8 @@ export function Settings({
     onSetGoal(Math.max(5, Math.min(200, dailyGoal + delta)));
   const adjustFcCount = (delta: number) =>
     onSetFlashcardCount(Math.max(20, Math.min(totalFlashcardEligible, flashcardCount + delta)));
+  const adjustMemorizeCount = (delta: number) =>
+    onSetMemorizeCount(Math.max(5, Math.min(totalQuestions, memorizeCount + delta)));
   const adjustRandomCount = (delta: number) =>
     onSetRandomCount(Math.max(10, Math.min(totalQuestions, randomCount + delta)));
 
@@ -117,6 +123,34 @@ export function Settings({
                 className="goal-step"
                 onClick={() => adjustFcCount(5)}
                 disabled={flashcardCount >= totalFlashcardEligible}
+                aria-label="增加题数"
+              >
+                +
+              </button>
+              <span className="settings-stepper-unit">题</span>
+            </div>
+          </div>
+          <div className="list-row settings-stepper-row">
+            <span className="row-main">
+              <span className="row-title">背答案题数</span>
+              <span className="row-sub">先记忆再检验的题量</span>
+            </span>
+            <div className="settings-stepper">
+              <button
+                type="button"
+                className="goal-step"
+                onClick={() => adjustMemorizeCount(-5)}
+                disabled={memorizeCount <= 5}
+                aria-label="减少题数"
+              >
+                −
+              </button>
+              <span className="goal-edit-value">{memorizeCount}</span>
+              <button
+                type="button"
+                className="goal-step"
+                onClick={() => adjustMemorizeCount(5)}
+                disabled={memorizeCount >= totalQuestions}
                 aria-label="增加题数"
               >
                 +

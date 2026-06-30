@@ -11,6 +11,8 @@ export interface SearchHit {
 /** Strip RichText / highlight markup for plain-text search and display. */
 export function stripMarkup(text: string): string {
   return text
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
     .replace(/\^([^^]+)\^/g, '$1')
     .replace(/~([^~]+)~/g, '$1')
     .replace(/==([^=]+)==/g, '$1');

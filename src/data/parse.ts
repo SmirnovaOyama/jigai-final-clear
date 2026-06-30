@@ -159,9 +159,9 @@ export function parseQuestions(content: string, subjectId: string): Question[] {
       } else if (explMatch) {
         explanation = explMatch[1];
       } else if (explanation) {
-        explanation += line;
+        explanation += (explanation ? '\n' : '') + line;
       } else if (knowledgePoint) {
-        knowledgePoint += line;
+        knowledgePoint += (knowledgePoint ? '\n' : '') + line;
       }
     }
 

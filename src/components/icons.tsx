@@ -144,3 +144,12 @@ export const Trophy = ({ size = 20, className }: IconProps) => (
     <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
   </svg>
 );
+
+export const Brain = ({ size = 20, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <path d="M9.5 2A5.5 5.5 0 0 0 4 7.5c0 1.1.33 2.12.9 2.97A4.5 4.5 0 0 0 5 14.5 4.5 4.5 0 0 0 9.5 19h5A4.5 4.5 0 0 0 19 14.5a4.5 4.5 0 0 0-.9-4.03A5.5 5.5 0 0 0 14.5 2h-5Z" />
+    <path d="M12 5v14" />
+    <path d="M8.5 8.5c.5 1 1.5 1.5 3.5 1.5s3-.5 3.5-1.5" />
+    <path d="M8.5 12.5c.5 1 1.5 1.5 3.5 1.5s3-.5 3.5-1.5" />
+  </svg>
+);

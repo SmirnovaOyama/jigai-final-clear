@@ -1,6 +1,6 @@
 import type { DeckKind } from '../App';
 import type { Subject } from '../types';
-import { ChevronRight, Shuffle, Spark, Trophy } from './icons';
+import { Brain, ChevronRight, Shuffle, Spark, Trophy } from './icons';
 
 interface HomeProps {
   subjects: Subject[];
@@ -15,6 +15,8 @@ interface HomeProps {
   favorites: Record<string, boolean>;
   flashcardCount: number;
   onStartFlashcard: (count: number) => void;
+  memorizeCount: number;
+  onStartMemorize: (count: number) => void;
   randomCount: number;
   onStartRandom: (count: number) => void;
   onStartExam: () => void;
@@ -42,6 +44,8 @@ export function Home({
   favorites,
   flashcardCount,
   onStartFlashcard,
+  memorizeCount,
+  onStartMemorize,
   randomCount,
   onStartRandom,
   onStartExam,
@@ -116,6 +120,22 @@ export function Home({
                 知识点速览
               </span>
               <span className="row-sub">先看知识点，再做对应题目 · {flashcardCount} 题</span>
+            </span>
+            <span className="row-go" aria-hidden="true">
+              <ChevronRight size={18} />
+            </span>
+          </button>
+          <button
+            type="button"
+            className="list-row"
+            onClick={() => onStartMemorize(memorizeCount)}
+          >
+            <span className="row-main">
+              <span className="row-title fc-entry-title">
+                <Brain size={15} className="fc-entry-icon" />
+                背答案
+              </span>
+              <span className="row-sub">先记住 {memorizeCount} 道题的答案，再检验记忆效果</span>
             </span>
             <span className="row-go" aria-hidden="true">
               <ChevronRight size={18} />
