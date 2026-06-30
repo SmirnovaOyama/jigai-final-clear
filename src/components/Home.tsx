@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import type { DeckKind } from '../App';
 import type { Subject } from '../types';
+import { MemorizePicker } from './MemorizePicker';
 import { Brain, ChevronRight, Shuffle, Spark, Trophy } from './icons';
 
 interface HomeProps {
@@ -17,7 +19,8 @@ interface HomeProps {
   onStartFlashcard: (count: number) => void;
   memorizeCount: number;
   totalMemorizeEligible: number;
-  onStartMemorize: (count: number) => void;
+  memorizeEligibleBySubject: Record<string, number>;
+  onStartMemorize: (count: number, subjectIds: string[]) => void;
   randomCount: number;
   onStartRandom: (count: number) => void;
   onStartExam: () => void;
@@ -47,11 +50,13 @@ export function Home({
   onStartFlashcard,
   memorizeCount,
   totalMemorizeEligible,
+  memorizeEligibleBySubject,
   onStartMemorize,
   randomCount,
   onStartRandom,
   onStartExam,
 }: HomeProps) {
+  const [memorizeOpen, setMemorizeOpen] = useState(false);
   const goalPct = dailyGoal > 0 ? Math.min(100, Math.round((todayDone / dailyGoal) * 100)) : 0;
   const goalDone = todayDone >= dailyGoal;
   const favCount = Object.values(favorites).filter(Boolean).length;
@@ -131,7 +136,7 @@ export function Home({
             type="button"
             className="list-row"
             disabled={totalMemorizeEligible === 0}
-            onClick={() => onStartMemorize(memorizeCount)}
+            onClick={() => setMemorizeOpen(true)}
           >
             <span className="row-main">
               <span className="row-title fc-entry-title">
@@ -150,6 +155,19 @@ export function Home({
           </button>
         </div>
       </section>
+
+      {memorizeOpen && (
+        <MemorizePicker
+          subjects={subjects}
+          eligibleBySubject={memorizeEligibleBySubject}
+          count={memorizeCount}
+          onClose={() => setMemorizeOpen(false)}
+          onConfirm={(subjectIds) => {
+            setMemorizeOpen(false);
+            onStartMemorize(memorizeCount, subjectIds);
+          }}
+        />
+      )}
 
       <section className="home-section">
         <h2 className="group-label">模拟练习</h2>

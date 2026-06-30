@@ -358,6 +358,18 @@ export default function App() {
     return n;
   }, [history]);
 
+  const memorizeEligibleBySubject = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const s of subjects) {
+      let n = 0;
+      for (const q of s.questions) {
+        if (!history[q.id]) n++;
+      }
+      map[s.id] = n;
+    }
+    return map;
+  }, [history]);
+
   const memorizeCount = useMemo(() => {
     if (totalMemorizeEligible <= 0) return 0;
     const raw = Number.isFinite(settings.memorizeCount) ? settings.memorizeCount : 10;
@@ -415,9 +427,11 @@ export default function App() {
   );
 
   const startMemorize = useCallback(
-    (count: number) => {
+    (count: number, subjectIds: string[]) => {
+      const allowed = new Set(subjectIds);
       const pool: DeckItem[] = [];
       for (const s of subjects) {
+        if (!allowed.has(s.id)) continue;
         for (let i = 0; i < s.questions.length; i++) {
           const q = s.questions[i];
           if (history[q.id]) continue;
@@ -610,6 +624,7 @@ export default function App() {
           onStartFlashcard={startFlashcard}
           memorizeCount={memorizeCount}
           totalMemorizeEligible={totalMemorizeEligible}
+          memorizeEligibleBySubject={memorizeEligibleBySubject}
           onStartMemorize={startMemorize}
           randomCount={randomCount}
           onStartRandom={(count) => startRandomDeck(count, `随机抽题 · ${count} 题`)}
