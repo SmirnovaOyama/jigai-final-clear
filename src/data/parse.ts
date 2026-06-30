@@ -23,6 +23,9 @@ function findMarker(text: string, letter: string, fromIdx: number): number {
     if (text[i] !== letter) continue;
     if (isLatinNum(text[i - 1])) continue;
     if (isLatinNum(text[i + 1])) continue;
+    // Skip "E" in inline lists like "N增加,L增加,E增加" — not an option marker.
+    const prev = text[i - 1];
+    if (prev !== undefined && ',，;；'.includes(prev)) continue;
     return i;
   }
   return -1;
@@ -35,11 +38,11 @@ function splitOptionsInline(text: string): Option[] {
   let from = 0;
   for (const label of labels) {
     const idx = findMarker(text, label, from);
-    if (idx === -1) break; // labels are sequential; stop at the first gap
+    if (idx === -1) continue; // option letter may be skipped in source (e.g. A B D E)
     let textStart = idx + 1;
     if (SEPARATORS.includes(text[textStart] ?? '')) textStart++;
     markers.push({ label, idx, textStart });
-    from = textStart;
+    from = idx + 1;
   }
 
   const options: Option[] = [];
