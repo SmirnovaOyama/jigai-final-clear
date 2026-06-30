@@ -347,10 +347,23 @@ export default function App() {
   );
 
   const totalQuestions = useMemo(() => subjects.reduce((n, s) => n + s.questions.length, 0), []);
-  const memorizeCount = Math.min(
-    Math.max(5, Number.isFinite(settings.memorizeCount) ? settings.memorizeCount : 10),
-    totalQuestions,
-  );
+
+  const totalMemorizeEligible = useMemo(() => {
+    let n = 0;
+    for (const s of subjects) {
+      for (const q of s.questions) {
+        if (!history[q.id]) n++;
+      }
+    }
+    return n;
+  }, [history]);
+
+  const memorizeCount = useMemo(() => {
+    if (totalMemorizeEligible <= 0) return 0;
+    const raw = Number.isFinite(settings.memorizeCount) ? settings.memorizeCount : 10;
+    const floor = totalMemorizeEligible >= 5 ? 5 : 1;
+    return Math.min(Math.max(floor, raw), totalMemorizeEligible);
+  }, [settings.memorizeCount, totalMemorizeEligible]);
   const randomCount = Math.min(
     Math.max(10, Number.isFinite(settings.randomCount) ? settings.randomCount : 30),
     totalQuestions,
@@ -406,6 +419,8 @@ export default function App() {
       const pool: DeckItem[] = [];
       for (const s of subjects) {
         for (let i = 0; i < s.questions.length; i++) {
+          const q = s.questions[i];
+          if (history[q.id]) continue;
           pool.push({ subjectId: s.id, qIndex: i });
         }
       }
@@ -414,7 +429,7 @@ export default function App() {
       setFlashcard({ items, position: 0, phase: 'study', mode: 'answer', answers: {} });
       setView('flashcard');
     },
-    [setFlashcard],
+    [history, setFlashcard],
   );
 
   const flipFlashcard = useCallback(() => {
@@ -594,6 +609,7 @@ export default function App() {
           flashcardCount={flashcardCount}
           onStartFlashcard={startFlashcard}
           memorizeCount={memorizeCount}
+          totalMemorizeEligible={totalMemorizeEligible}
           onStartMemorize={startMemorize}
           randomCount={randomCount}
           onStartRandom={(count) => startRandomDeck(count, `随机抽题 · ${count} 题`)}
@@ -615,6 +631,7 @@ export default function App() {
           totalFlashcardEligible={totalFlashcardEligible}
           onSetFlashcardCount={setFlashcardCount}
           memorizeCount={memorizeCount}
+          totalMemorizeEligible={totalMemorizeEligible}
           onSetMemorizeCount={setMemorizeCount}
           randomCount={randomCount}
           totalQuestions={totalQuestions}

@@ -16,6 +16,7 @@ interface HomeProps {
   flashcardCount: number;
   onStartFlashcard: (count: number) => void;
   memorizeCount: number;
+  totalMemorizeEligible: number;
   onStartMemorize: (count: number) => void;
   randomCount: number;
   onStartRandom: (count: number) => void;
@@ -45,6 +46,7 @@ export function Home({
   flashcardCount,
   onStartFlashcard,
   memorizeCount,
+  totalMemorizeEligible,
   onStartMemorize,
   randomCount,
   onStartRandom,
@@ -128,6 +130,7 @@ export function Home({
           <button
             type="button"
             className="list-row"
+            disabled={totalMemorizeEligible === 0}
             onClick={() => onStartMemorize(memorizeCount)}
           >
             <span className="row-main">
@@ -135,7 +138,11 @@ export function Home({
                 <Brain size={15} className="fc-entry-icon" />
                 背答案
               </span>
-              <span className="row-sub">先记住 {memorizeCount} 道题的答案，再检验记忆效果</span>
+              <span className="row-sub">
+                {totalMemorizeEligible > 0
+                  ? `只背未做过的题 · ${memorizeCount} 题（剩余 ${totalMemorizeEligible}）`
+                  : '所有题目都做过了'}
+              </span>
             </span>
             <span className="row-go" aria-hidden="true">
               <ChevronRight size={18} />
