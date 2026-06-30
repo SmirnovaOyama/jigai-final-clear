@@ -8,9 +8,11 @@ export interface SearchHit {
   question: Question;
 }
 
+import { normalizeMarkup } from './markup';
+
 /** Strip RichText / highlight markup for plain-text search and display. */
 export function stripMarkup(text: string): string {
-  return text
+  return normalizeMarkup(text)
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/\*([^*]+)\*/g, '$1')
     .replace(/\^([^^]+)\^/g, '$1')

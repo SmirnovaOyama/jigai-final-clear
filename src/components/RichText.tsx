@@ -1,5 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 
+import { normalizeMarkup } from '../data/markup';
+
 // Renders lightweight markup found in question banks and knowledge points:
 //   **text**   -> bold
 //   *text*     -> italic (not inside words)
@@ -50,7 +52,8 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
 export function RichText({ text }: { text: string }): ReactNode {
   if (!text) return null;
 
-  const lines = text.split('\n');
+  const normalized = normalizeMarkup(text);
+  const lines = normalized.split('\n');
   const blocks: ReactNode[] = [];
   let listItems: ReactNode[] = [];
   let blockIdx = 0;
